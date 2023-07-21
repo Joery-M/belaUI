@@ -2001,6 +2001,16 @@ function notificationSendPersistent (conn, isAuthed = false)
 /* Hardware monitoring */
 /** @type {{'SoC voltage': string, 'SoC current': string, 'SoC temperatures': {[key:string]:string}}} */
 let sensors = {};
+
+function updateSensorThermal(id, name) {
+  try {
+    let socTemp = fs.readFileSync(`/sys/class/thermal/thermal_zone${id}/temp`, 'utf8');
+    socTemp = parseInt(socTemp) / 1000.0;
+    socTemp = `${socTemp.toFixed(1)} °C`;
+    sensors[name] = socTemp;
+  } catch (err) {};
+}
+
 function updateSensorsJetson ()
 {
     try
@@ -2164,7 +2174,7 @@ checkCamlinkUsb2();
 
 
 /* Audio input selection and codec */
-const alsaSrcPattern = /alsasrc device=[A-Za-z0-9:]+/;
+const alsaSrcPattern = /alsasrc device=[A-Za-z0-9:=]+/;
 const alsaPipelinePattern = /alsasrc device=[A-Za-z0-9:]+(.|[\s])*?mux\. *\s?/;
 
 const audioCodecPattern = /voaacenc\s+bitrate=(\d+)\s+!\s+aacparse\s+!/;
