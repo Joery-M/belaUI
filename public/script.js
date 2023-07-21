@@ -20,76 +20,92 @@ let config = {};
 
 let ws = null;
 
-function getThemeSetting() {
-  return $('#themeSelector>select').val();
+function getThemeSetting ()
+{
+    return $('#themeSelector>select').val();
 }
 
-function updateTheme(theme) {
-  if (!theme) {
-    theme = getThemeSetting();
-  }
-
-  if (theme == 'auto') {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      theme = 'dark';
+function updateTheme (theme)
+{
+    if (!theme)
+    {
+        theme = getThemeSetting();
     }
-  }
 
-  if (theme == 'dark') {
-    $('body').addClass('dark');
-  } else {
-    $('body').removeClass('dark');
-  }
+    if (theme == 'auto')
+    {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        {
+            theme = 'dark';
+        }
+    }
+
+    if (theme == 'dark')
+    {
+        $('body').addClass('dark');
+    } else
+    {
+        $('body').removeClass('dark');
+    }
 }
 
 // Load the persistent setting, if available
-function loadThemeSetting() {
-  const s = localStorage.getItem('theme');
-  if (s) {
-    $('#themeSelector>select').val(s);
-  }
-  updateTheme();
+function loadThemeSetting ()
+{
+    const s = localStorage.getItem('theme');
+    if (s)
+    {
+        $('#themeSelector>select').val(s);
+    }
+    updateTheme();
 }
 loadThemeSetting();
 
 // Update the theme if the selector is changed
-$('#themeSelector>select').change(function () {
-  const s = getThemeSetting();
-  localStorage.setItem('theme', s);
-  updateTheme(s);
+$('#themeSelector>select').change(function ()
+{
+    const s = getThemeSetting();
+    localStorage.setItem('theme', s);
+    updateTheme(s);
 });
 
 // Update the theme if the system preference changes
-if (window.matchMedia) {
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
-    updateTheme();
-  });
+if (window.matchMedia)
+{
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function ()
+    {
+        updateTheme();
+    });
 }
 
 
-function tryConnect() {
-  let c = new WebSocket("ws://" + window.location.host);
-  c.addEventListener('message', function (event) {
-    handleMessage(JSON.parse(event.data));
-  });
+function tryConnect ()
+{
+    let c = new WebSocket("ws://" + window.location.host);
+    c.addEventListener('message', function (event)
+    {
+        handleMessage(JSON.parse(event.data));
+    });
 
-  c.addEventListener('close', function (event) {
-    ws = null;
+    c.addEventListener('close', function (event)
+    {
+        ws = null;
 
-    showError("Disconnected from BELABOX. Trying to reconnect...");
-    setTimeout(tryConnect, 1000);
+        showError("Disconnected from BELABOX. Trying to reconnect...");
+        setTimeout(tryConnect, 1000);
 
-    updateNetact(false);
-  });
+        updateNetact(false);
+    });
 
-  c.addEventListener('open', function (event) {
-    ws = c;
+    c.addEventListener('open', function (event)
+    {
+        ws = c;
 
-    hideError();
-    $('#notifications').empty();
-    tryTokenAuth();
-    updateNetact(true);
-  });
+        hideError();
+        $('#notifications').empty();
+        tryTokenAuth();
+        updateNetact(true);
+    });
 }
 
 tryConnect();
@@ -103,67 +119,81 @@ tryConnect();
    The periodic keep-alive packets let the server know that this client is still
    active and should receive updates.
 */
-setInterval(function() {
-  if (ws) {
-    ws.send(JSON.stringify({keepalive: null}));
-  }
+setInterval(function ()
+{
+    if (ws)
+    {
+        ws.send(JSON.stringify({ keepalive: null }));
+    }
 }, 10000);
 
 
 /* Authentication */
-function tryTokenAuth() {
-  let authToken = localStorage.getItem('authToken');
-  if (authToken) {
-    ws.send(JSON.stringify({auth: {token: authToken}}));
-  } else {
-    showLoginForm();
-  }
+function tryTokenAuth ()
+{
+    let authToken = localStorage.getItem('authToken');
+    if (authToken)
+    {
+        ws.send(JSON.stringify({ auth: { token: authToken } }));
+    } else
+    {
+        showLoginForm();
+    }
 }
 
-function handleAuthResult(msg) {
-  if (msg.success === true) {
-    if (msg.auth_token) {
-      localStorage.setItem('authToken', msg.auth_token);
+function handleAuthResult (msg)
+{
+    if (msg.success === true)
+    {
+        if (msg.auth_token)
+        {
+            localStorage.setItem('authToken', msg.auth_token);
+        }
+        $('#login').addClass('d-none');
+        $('#initialPasswordForm').addClass('d-none');
+        hideError();
+        $('#notifications').empty();
+        $('#main').removeClass('d-none');
+        $('#themeSelector').removeClass('d-none');
+    } else if (!isShowingInitialPasswordForm)
+    {
+        showLoginForm();
     }
-    $('#login').addClass('d-none');
-    $('#initialPasswordForm').addClass('d-none');
-    hideError();
-    $('#notifications').empty();
-    $('#main').removeClass('d-none');
-    $('#themeSelector').removeClass('d-none');
-  } else if (!isShowingInitialPasswordForm) {
-    showLoginForm();
-  }
 }
 
 /* Show the revision number */
-function setRevisions(revs) {
-  let list = '';
-  for (s in revs) {
-    if (list != '') list += ', ';
-    list += `${s}\xa0${revs[s]}`;
-  }
+function setRevisions (revs)
+{
+    let list = '';
+    for (s in revs)
+    {
+        if (list != '') list += ', ';
+        list += `${s}\xa0${revs[s]}`;
+    }
 
-  $('#revisions').text(list);
+    $('#revisions').text(list);
 }
 
 
 /* Network interfaces list */
-function setNetif(name, ip, enabled) {
-  ws.send(JSON.stringify({'netif': {'name': name, 'ip': ip, 'enabled': enabled}}));
+function setNetif (name, ip, enabled)
+{
+    ws.send(JSON.stringify({ 'netif': { 'name': name, 'ip': ip, 'enabled': enabled } }));
 }
 
-function genNetifEntry(error, enabled, name, ip, throughput, isBold = false) {
-  let checkbox = '';
-  if (enabled != undefined) {
-    const esc_name = name.replaceAll("'", "\\'");
-    const esc_ip = ip.replaceAll("'", "\\'");
-    checkbox = `<input type="checkbox"
+function genNetifEntry (error, enabled, name, ip, throughput, isBold = false)
+{
+    let checkbox = '';
+    if (enabled != undefined)
+    {
+        const esc_name = name.replaceAll("'", "\\'");
+        const esc_ip = ip.replaceAll("'", "\\'");
+        checkbox = `<input type="checkbox"
                  onclick="setNetif('${esc_name}', '${esc_ip}', this.checked)"
                  ${enabled ? 'checked' : ''}>`;
-  }
+    }
 
-  const html = `
+    const html = `
     <tr>
       <td>${checkbox}</td>
       <td class="netif_name"></td>
@@ -171,524 +201,791 @@ function genNetifEntry(error, enabled, name, ip, throughput, isBold = false) {
       <td class="netif_tp ${isBold ? 'font-weight-bold' : ''}"></td>
     </tr>`;
 
-  const entry = $($.parseHTML(html));
-  entry.find('.netif_name').text(name);
-  entry.find('.netif_ip').text(ip);
-  entry.find('.netif_tp').text(throughput);
-  if (error) {
-    const cb = entry.find('input');
-    cb.attr('disabled', true);
-    cb.attr('title', `Can't enable: ${error}`);
-  }
+    const entry = $($.parseHTML(html));
+    entry.find('.netif_name').text(name);
+    entry.find('.netif_ip').text(ip);
+    entry.find('.netif_tp').text(throughput);
+    if (error)
+    {
+        const cb = entry.find('input');
+        cb.attr('disabled', true);
+        cb.attr('title', `Can't enable: ${error}`);
+    }
 
-  return entry;
+    return entry;
 }
 
-function updateNetif(netifs) {
-  let modemList = [];
-  let totalKbps = 0;
+const ctxNet = document.getElementById('netChart');
 
-  for (const i in netifs) {
-    data = netifs[i];
-    tpKbps = Math.round((data['tp'] * 8) / 1024);
-    totalKbps += tpKbps;
+const netChart = new Chart(ctxNet, {
+    type: 'line',
+    data: {
+    },
+    options: {
+        elements: {
+            line: {
+                tension: 0.5
+            }
+        },
+        animation: {
+            animateRotate: true,
+        },
+        spanGaps: true
+    },
+    scales: {
+        x: {
+            type: 'time',
+            ticks: {
+                source: 'auto',
+                autoSkip: true,
+            }
+        }
+    }
+});
 
-    modemList.push(genNetifEntry(data.error, data.enabled, i, data.ip, `${tpKbps} Kbps`));
-  }
+function updateNetif (netifs)
+{
+    let modemList = [];
+    let totalKbps = 0;
 
-  if (Object.keys(netifs).length > 1) {
-    modemList.push(genNetifEntry(undefined, undefined, '', '', `${totalKbps} Kbps`, true));
-  }
+    for (const i in netifs)
+    {
+        /**
+         * @type {{ip: string, txb: number, tp: number, enabled: boolean}}
+         */
+        data = netifs[i];
+        tpKbps = Math.round((data['tp'] * 8) / 1024);
+        totalKbps += tpKbps;
 
-  $('#modems').html(modemList);
+        if (netChart.data.datasets.find((a) => a.label == i))
+        {
+            netChart.data.datasets.find((a) => a.label == i).data.shift();
+            netChart.data.datasets.find((a) => a.label == i).data.push(tpKbps);
+        } else
+        {
+            netChart.data.datasets.push({
+                label: i,
+                data: [...(new Array(49).map(() => 0)), tpKbps]
+            });
+        }
+
+        modemList.push(genNetifEntry(data.error, data.enabled, i, data.ip, `${tpKbps} Kbps`));
+    }
+
+    // netChart.update()
+
+    while (netChart.data.labels.length <= 50)
+    {
+        netChart.data.labels.push(new Date(Date.now()).getHours() + ":" + (new Date(Date.now()).getMinutes().toString()).padStart(2, "0") + ":" + (new Date(Date.now()).getSeconds().toString()).padStart(2, "0"));
+    }
+
+    netChart.update();
+
+    netChart.data.datasets.forEach((dataset) =>
+    {
+        while (dataset.data.length > 50)
+        {
+            // dataset.data.shift();
+        }
+    });
+    while (netChart.data.labels.length > 50)
+    {
+        netChart.data.labels.shift();
+    }
+
+    netChart.update();
+
+    if (Object.keys(netifs).length > 1)
+    {
+        modemList.push(genNetifEntry(undefined, undefined, '', '', `${totalKbps} Kbps`, true));
+    }
+
+    $('#modems').html(modemList);
 }
 
-function updateSensors(sensors) {
-  const sensorList = [];
+const ctx = document.getElementById('tempChart');
 
-  for (const i in sensors) {
-    data = sensors[i];
+/** @type {{[key: string]: number[]}} */
+let sensorHistory = {};
+// /** @type {import("@types/chart.js").default} */
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
 
-    const entryHtml = `
-      <tr>
-        <td class="sensor_name"></td>
-        <td class="sensor_value"></td>
-      </tr>`;
-    const entry = $($.parseHTML(entryHtml));
-    entry.find('.sensor_name').text(i);
-    entry.find('.sensor_value').text(data);
-    sensorList.push(entry);
-  }
+    },
+    options: {
+        elements: {
+            line: {
+                tension: 0.5
+            }
+        },
+        animation: {
+            animateRotate: true
+        },
+        title: { text: "Temperatures", position: "top" },
+        spanGaps: true,
+        scales: {
+            y: {
+                min: 30
+            }
+        }
+    },
+    plugins: {
+        decimation: {
+            enabled: false,
+            algorithm: 'min-max',
+        },
+    },
+    scales: {
+        x: {
+            type: 'time',
+            ticks: {
+                source: 'auto',
+                autoSkip: true,
+            }
+        },
+    }
+});
 
-  $('#sensors').html(sensorList);
+/**
+ * 
+ * @param {{[key:string]:number}} sensors 
+ */
+function updateSensors (sensors)
+{
+    const sensorList = [];
+
+    for (const name in sensors["SoC temperatures"])
+    {
+        if (Object.hasOwnProperty.call(sensors["SoC temperatures"], name))
+        {
+            const data = sensors["SoC temperatures"][name];
+
+            const entryHtml = `
+          <tr>
+            <td class="sensor_name"></td>
+            <td class="sensor_value"></td>
+          </tr>`;
+            const entry = $($.parseHTML(entryHtml));
+            entry.find('.sensor_name').text(name);
+            entry.find('.sensor_value').text(`${data.toFixed(1)} °C`);
+            sensorList.push(entry);
+
+            if (!sensorHistory[name])
+            {
+                sensorHistory[name] = [];
+            }
+
+            sensorHistory[name].push(data);
+        }
+    }
+
+    for (const name in sensorHistory)
+    {
+        if (Object.hasOwnProperty.call(sensorHistory, name))
+        {
+            const value = sensorHistory[name];
+
+            if (chart.data.datasets.find((a) => a.label == name))
+            {
+                chart.data.datasets.find((a) => a.label == name).data = value;
+            } else
+            {
+                chart.data.datasets.push({
+                    label: name,
+                    data: value
+                });
+            }
+        }
+    }
+
+    if (Object.keys(sensorHistory)[0])
+    {
+        chart.data.labels.push(new Date(Date.now()).getHours() + ":" + (new Date(Date.now()).getMinutes().toString()).padStart(2, "0") + ":" + (new Date(Date.now()).getSeconds().toString()).padStart(2, "0"));
+    }
+
+    chart.update();
+
+    for (const name in sensorHistory)
+    {
+        while (sensorHistory[name].length > 50)
+        {
+            sensorHistory[name].shift();
+        }
+    }
+    let minimumVal = chart.options.scales.y.min
+    chart.data.datasets.forEach((dataset) =>
+    {
+        while (dataset.length > 50)
+        {
+            dataset.data.shift();
+        }
+        minimumVal = Math.min(minimumVal, ...dataset.data)
+    });
+
+    chart.options.scales.y.min = minimumVal
+
+    while (chart.data.labels.length > 50)
+    {
+        chart.data.labels.shift();
+    }
+
+    $('#sensors').html(sensorList);
 }
 
 
 /* Remote status */
 let remoteConnectedHideTimer;
-function showRemoteStatus(status) {
-  if (remoteConnectedHideTimer) {
-    clearTimeout(remoteConnectedHideTimer);
-    remoteConnectedHideTimer = undefined;
-  }
-
-  if (status === true) {
-    $('#remoteStatus').removeClass('alert-danger');
-    $('#remoteStatus').addClass('alert-success');
-    $('#remoteStatus').text("BELABOX cloud remote: connected");
-    remoteConnectedHideTimer = setTimeout(function() {
-      $('#remoteStatus').addClass('d-none');
-      remoteConnectedHideTimer = undefined;
-    }, 5000);
-  } else if (status.error) {
-    switch(status.error) {
-      case 'network':
-        $('#remoteStatus').text("BELABOX cloud remote: network error. Trying to reconnect...\n");
-        break;
-      case 'key':
-        $('#remoteStatus').text("BELABOX cloud remote: invalid key\n");
-        break;
-      default:
-        return;
+function showRemoteStatus (status)
+{
+    if (remoteConnectedHideTimer)
+    {
+        clearTimeout(remoteConnectedHideTimer);
+        remoteConnectedHideTimer = undefined;
     }
 
-    $('#remoteStatus').addClass('alert-danger');
-    $('#remoteStatus').removeClass('alert-success');
-  } else {
-    return;
-  }
-  $('#remoteStatus').removeClass('d-none');
+    if (status === true)
+    {
+        $('#remoteStatus').removeClass('alert-danger');
+        $('#remoteStatus').addClass('alert-success');
+        $('#remoteStatus').text("BELABOX cloud remote: connected");
+        remoteConnectedHideTimer = setTimeout(function ()
+        {
+            $('#remoteStatus').addClass('d-none');
+            remoteConnectedHideTimer = undefined;
+        }, 5000);
+    } else if (status.error)
+    {
+        switch (status.error)
+        {
+            case 'network':
+                $('#remoteStatus').text("BELABOX cloud remote: network error. Trying to reconnect...\n");
+                break;
+            case 'key':
+                $('#remoteStatus').text("BELABOX cloud remote: invalid key\n");
+                break;
+            default:
+                return;
+        }
+
+        $('#remoteStatus').addClass('alert-danger');
+        $('#remoteStatus').removeClass('alert-success');
+    } else
+    {
+        return;
+    }
+    $('#remoteStatus').removeClass('d-none');
 }
 
 
 /* Software updates */
-function showSoftwareUpdates(status) {
-  if (status) {
-    if (status.package_count) {
-      $('#softwareUpdate span.desc').text(`(${status.package_count} packages, ${status.download_size})`);
-    } else {
-      $('#softwareUpdate span.desc').text('(up to date)');
+function showSoftwareUpdates (status)
+{
+    if (status)
+    {
+        if (status.package_count)
+        {
+            $('#softwareUpdate span.desc').text(`(${status.package_count} packages, ${status.download_size})`);
+        } else
+        {
+            $('#softwareUpdate span.desc').text('(up to date)');
+        }
+        $('#softwareUpdate').attr('disabled', !status.package_count);
+    } else if (status === null)
+    {
+        $('#softwareUpdate span.desc').text('(checking for updates...)');
+        $('#softwareUpdate').attr('disabled', true);
     }
-    $('#softwareUpdate').attr('disabled', !status.package_count);
-  } else if (status === null) {
-    $('#softwareUpdate span.desc').text('(checking for updates...)');
-    $('#softwareUpdate').attr('disabled', true);
-  }
-  if (status === false) {
-     $('#softwareUpdate').addClass('d-none');
-  } else {
-    $('#softwareUpdate').removeClass('d-none');
-  }
+    if (status === false)
+    {
+        $('#softwareUpdate').addClass('d-none');
+    } else
+    {
+        $('#softwareUpdate').removeClass('d-none');
+    }
 }
 
-function showSoftwareUpdateValue(cls, value, total) {
-  if (value > 0) {
-    $(`#softwareUpdateStatus .${cls} .value`).text(`${value} / ${total}`);
-    $(`#softwareUpdateStatus .${cls}`).removeClass('d-none');
-  } else {
-    $(`#softwareUpdateStatus .${cls}`).addClass('d-none');
-  }
+function showSoftwareUpdateValue (cls, value, total)
+{
+    if (value > 0)
+    {
+        $(`#softwareUpdateStatus .${cls} .value`).text(`${value} / ${total}`);
+        $(`#softwareUpdateStatus .${cls}`).removeClass('d-none');
+    } else
+    {
+        $(`#softwareUpdateStatus .${cls}`).addClass('d-none');
+    }
 }
 
-function showSoftwareUpdateStatus(status) {
-  if (!status) {
-    $('#softwareUpdateStatus').addClass('d-none');
-    return;
-  }
+function showSoftwareUpdateStatus (status)
+{
+    if (!status)
+    {
+        $('#softwareUpdateStatus').addClass('d-none');
+        return;
+    }
 
-  $('#startStop, #softwareUpdate, .command-btn').attr('disabled', status.result === undefined);
+    $('#startStop, #softwareUpdate, .command-btn').attr('disabled', status.result === undefined);
 
-  showSoftwareUpdateValue('downloading', status.downloading, status.total);
-  showSoftwareUpdateValue('unpacking', status.unpacking, status.total);
-  showSoftwareUpdateValue('setting-up', status.setting_up, status.total);
+    showSoftwareUpdateValue('downloading', status.downloading, status.total);
+    showSoftwareUpdateValue('unpacking', status.unpacking, status.total);
+    showSoftwareUpdateValue('setting-up', status.setting_up, status.total);
 
-  if (status.result === 0) {
-    $('#softwareUpdateStatus p.result').text('Update completed. Restarting the encoder...');
-    $('#softwareUpdateStatus p.result').removeClass('text-danger');
-    $('#softwareUpdateStatus p.result').addClass('text-success');
-    $('#softwareUpdateStatus .result').removeClass('d-none');
-  } else if (status.result !== undefined) {
-    $('#softwareUpdateStatus p.result').text("Update error: " + status.result);
-    $('#softwareUpdateStatus p.result').removeClass('text-success');
-    $('#softwareUpdateStatus p.result').addClass('text-danger');
-    $('#softwareUpdateStatus .result').removeClass('d-none');
-  } else {
-    $('#softwareUpdateStatus .result').addClass('d-none');
-  }
+    if (status.result === 0)
+    {
+        $('#softwareUpdateStatus p.result').text('Update completed. Restarting the encoder...');
+        $('#softwareUpdateStatus p.result').removeClass('text-danger');
+        $('#softwareUpdateStatus p.result').addClass('text-success');
+        $('#softwareUpdateStatus .result').removeClass('d-none');
+    } else if (status.result !== undefined)
+    {
+        $('#softwareUpdateStatus p.result').text("Update error: " + status.result);
+        $('#softwareUpdateStatus p.result').removeClass('text-success');
+        $('#softwareUpdateStatus p.result').addClass('text-danger');
+        $('#softwareUpdateStatus .result').removeClass('d-none');
+    } else
+    {
+        $('#softwareUpdateStatus .result').addClass('d-none');
+    }
 
-  $('#softwareUpdateStatus').removeClass('d-none');
+    $('#softwareUpdateStatus').removeClass('d-none');
 }
 
-$('#softwareUpdate').click(function() {
-  const msg = 'Are you sure you want to start a software update? ' +
-              'This may take several minutes. ' +
-              'You won\'t be able to start a stream until it\'s completed. ' +
-              'The encoder will briefly disconnect after a successful upgrade. ' +
-              'Never remove power or reset the encoder while updating. If the encoder is powered from a battery, ensure it\'s fully charged.';
+$('#softwareUpdate').click(function ()
+{
+    const msg = 'Are you sure you want to start a software update? ' +
+        'This may take several minutes. ' +
+        'You won\'t be able to start a stream until it\'s completed. ' +
+        'The encoder will briefly disconnect after a successful upgrade. ' +
+        'Never remove power or reset the encoder while updating. If the encoder is powered from a battery, ensure it\'s fully charged.';
 
-  if (confirm(msg)) {
-    send_command('update');
-  }
+    if (confirm(msg))
+    {
+        send_command('update');
+    }
 });
 
 
 /* SSH status / control */
 let sshStatus;
-function showSshStatus(s) {
-  if (s !== undefined) {
-    sshStatus = s;
-  }
+function showSshStatus (s)
+{
+    if (s !== undefined)
+    {
+        sshStatus = s;
+    }
 
-  if (!sshStatus) return;
+    if (!sshStatus) return;
 
-  const pass = !config.ssh_pass ? 'password not set' : (sshStatus.user_pass ? 'user-set password' : config.ssh_pass)
-  $('label[for=sshPassword]').text(`SSH password (username: ${sshStatus.user})`);
+    const pass = !config.ssh_pass ? 'password not set' : (sshStatus.user_pass ? 'user-set password' : config.ssh_pass);
+    $('label[for=sshPassword]').text(`SSH password (username: ${sshStatus.user})`);
 
-  $('#sshPassword').val(pass);
-  if (sshStatus.active) {
-    $('#startSsh').addClass('d-none');
-    $('#stopSsh').removeClass('d-none');
-  } else {
-    $('#stopSsh').addClass('d-none');
-    $('#startSsh').removeClass('d-none');
-  }
-  $('#sshSettings').removeClass('d-none');
+    $('#sshPassword').val(pass);
+    if (sshStatus.active)
+    {
+        $('#startSsh').addClass('d-none');
+        $('#stopSsh').removeClass('d-none');
+    } else
+    {
+        $('#stopSsh').addClass('d-none');
+        $('#startSsh').removeClass('d-none');
+    }
+    $('#sshSettings').removeClass('d-none');
 }
 
-$('#resetSshPass').click(function() {
-  const msg = 'Are you sure you want to reset the SSH password?';
+$('#resetSshPass').click(function ()
+{
+    const msg = 'Are you sure you want to reset the SSH password?';
 
-  if (confirm(msg)) {
-    send_command('reset_ssh_pass');
-  }
+    if (confirm(msg))
+    {
+        send_command('reset_ssh_pass');
+    }
 });
 
 
 /* Audio device / codec selection */
 let audioSrcList = [];
-function updateAudioSrcs(list) {
-  if (list !== null) {
-    audioSrcList = list;
-  }
-
-  const audioSelect = document.getElementById("audioSource");
-  audioSelect.innerText = null;
-  let asrcFound = false;
-
-  for (const card of audioSrcList) {
-    const option = document.createElement("option");
-    option.value = card;
-    option.innerText = card;
-
-    audioSelect.append(option);
-    if (config.asrc && card == config.asrc) {
-      option.selected = true;
-      asrcFound = true;
+function updateAudioSrcs (list)
+{
+    if (list !== null)
+    {
+        audioSrcList = list;
     }
-  }
 
-  if (config.asrc && !asrcFound) {
-    const option = document.createElement("option");
-    option.innerText = config.asrc + " (unavailable)";
-    option.value = config.asrc;
-    option.selected = true;
-    audioSelect.append(option);
-  }
+    const audioSelect = document.getElementById("audioSource");
+    audioSelect.innerText = null;
+    let asrcFound = false;
+
+    for (const card of audioSrcList)
+    {
+        const option = document.createElement("option");
+        option.value = card;
+        option.innerText = card;
+
+        audioSelect.append(option);
+        if (config.asrc && card == config.asrc)
+        {
+            option.selected = true;
+            asrcFound = true;
+        }
+    }
+
+    if (config.asrc && !asrcFound)
+    {
+        const option = document.createElement("option");
+        option.innerText = config.asrc + " (unavailable)";
+        option.value = config.asrc;
+        option.selected = true;
+        audioSelect.append(option);
+    }
 }
 
 let audioCodecList = {};
-function updateAudioCodecs(list) {
-  if (list !== null) {
-    audioCodecList = list;
-  }
-
-  const audioCodec = document.getElementById("audioCodec");
-  audioCodec.innerText = null;
-
-  for (const codec in audioCodecList) {
-    const option = document.createElement("option");
-    option.value = codec;
-    option.innerText = audioCodecList[codec];
-
-    if (config.acodec && codec == config.acodec) {
-      option.selected = true;
+function updateAudioCodecs (list)
+{
+    if (list !== null)
+    {
+        audioCodecList = list;
     }
-    audioCodec.append(option);
-  }
+
+    const audioCodec = document.getElementById("audioCodec");
+    audioCodec.innerText = null;
+
+    for (const codec in audioCodecList)
+    {
+        const option = document.createElement("option");
+        option.value = codec;
+        option.innerText = audioCodecList[codec];
+
+        if (config.acodec && codec == config.acodec)
+        {
+            option.selected = true;
+        }
+        audioCodec.append(option);
+    }
 }
 
 
 /* status updates */
-function updateStatus(status) {
-  if (status.is_streaming !== undefined) {
-    isStreaming = status.is_streaming;
-    if (isStreaming) {
-      updateButtonAndSettingsShow({
-        add: "btn-danger",
-        remove: "btn-success",
-        text: "Stop",
-        enabled: true,
-        settingsShow: false,
-      });
-    } else {
-      updateButtonAndSettingsShow({
-        add: "btn-success",
-        remove: "btn-danger",
-        text: "Start",
-        enabled: true,
-        settingsShow: true,
-      });
+function updateStatus (status)
+{
+    if (status.is_streaming !== undefined)
+    {
+        isStreaming = status.is_streaming;
+        if (isStreaming)
+        {
+            updateButtonAndSettingsShow({
+                add: "btn-danger",
+                remove: "btn-success",
+                text: "Stop",
+                enabled: true,
+                settingsShow: false,
+            });
+        } else
+        {
+            updateButtonAndSettingsShow({
+                add: "btn-success",
+                remove: "btn-danger",
+                text: "Start",
+                enabled: true,
+                settingsShow: true,
+            });
+        }
     }
-  }
 
-  if (status.remote) {
-    showRemoteStatus(status.remote);
-  }
+    if (status.remote)
+    {
+        showRemoteStatus(status.remote);
+    }
 
-  if (status.set_password === true) {
-    showInitialPasswordForm();
-  }
+    if (status.set_password === true)
+    {
+        showInitialPasswordForm();
+    }
 
-  if (status.available_updates !== undefined) {
-    showSoftwareUpdates(status.available_updates);
-  }
+    if (status.available_updates !== undefined)
+    {
+        showSoftwareUpdates(status.available_updates);
+    }
 
-  if (status.updating !== undefined) {
-    showSoftwareUpdateStatus(status.updating);
-  }
+    if (status.updating !== undefined)
+    {
+        showSoftwareUpdateStatus(status.updating);
+    }
 
-  if (status.ssh) {
-    showSshStatus(status.ssh);
-  }
+    if (status.ssh)
+    {
+        showSshStatus(status.ssh);
+    }
 
-  if (status.wifi) {
-    updateWifiState(status.wifi);
-  }
+    if (status.wifi)
+    {
+        updateWifiState(status.wifi);
+    }
 
-  if (status.asrcs) {
-    updateAudioSrcs(status.asrcs);
-  }
+    if (status.asrcs)
+    {
+        updateAudioSrcs(status.asrcs);
+    }
 }
 
 
 /* Configuration loading */
-function loadConfig(c) {
-  config = c;
+function loadConfig (c)
+{
+    config = c;
 
-  initBitrateSlider(config.max_br ?? 5000);
-  initDelaySlider(config.delay ?? 0);
-  initSrtLatencySlider(config.srt_latency ?? 2000);
-  updatePipelines(null);
-  updateAudioSrcs(null);
+    initBitrateSlider({ min_br: config.min_br ?? 300, max_br: config.max_br ?? 5000 });
+    initDelaySlider(config.delay ?? 0);
+    initSrtLatencySlider(config.srt_latency ?? 2000);
+    updatePipelines(null);
+    updateAudioSrcs(null);
 
-  const srtlaAddr = config.srtla_addr ?? "";
-  showHideRelayHint(srtlaAddr);
-  document.getElementById("srtlaAddr").value = srtlaAddr;
-  document.getElementById("srtStreamid").value = config.srt_streamid ?? "";
-  document.getElementById("srtlaPort").value = config.srtla_port ?? "";
+    const srtlaAddr = config.srtla_addr ?? "";
+    showHideRelayHint(srtlaAddr);
+    document.getElementById("srtlaAddr").value = srtlaAddr;
+    document.getElementById("srtStreamid").value = config.srt_streamid ?? "";
+    document.getElementById("srtlaPort").value = config.srtla_port ?? "";
 
-  $('#remoteDeviceKey').val(config.remote_key);
-  $('#remoteKeyForm button[type=submit]').prop('disabled', true);
-  $("#bitrateOverlay").prop('checked', config.bitrate_overlay)
+    $('#remoteDeviceKey').val(config.remote_key);
+    $('#remoteKeyForm button[type=submit]').prop('disabled', true);
+    $("#bitrateOverlay").prop('checked', config.bitrate_overlay);
 
-  if (config.ssh_pass && sshStatus) {
-    showSshStatus();
-  }
+    if (config.ssh_pass && sshStatus)
+    {
+        showSshStatus();
+    }
 }
 
 
 /* Pipelines */
 let pipelines = {};
-function updatePipelines(ps) {
-  if (ps != null) {
-    pipelines = ps;
-  }
-
-  const pipelinesSelect = document.getElementById("pipelines");
-  pipelinesSelect.innerText = null;
-
-  for (const id in pipelines) {
-    const option = document.createElement("option");
-    option.value = id;
-    option.innerText = pipelines[id].name;
-    if (config.pipeline && config.pipeline == id) {
-      option.selected = true;
+function updatePipelines (ps)
+{
+    if (ps != null)
+    {
+        pipelines = ps;
     }
 
-    pipelinesSelect.append(option);
-  }
-  pipelineSelectHandler(pipelinesSelect);
+    const pipelinesSelect = document.getElementById("pipelines");
+    pipelinesSelect.innerText = null;
+
+    for (const id in pipelines)
+    {
+        const option = document.createElement("option");
+        option.value = id;
+        option.innerText = pipelines[id].name;
+        if (config.pipeline && config.pipeline == id)
+        {
+            option.selected = true;
+        }
+
+        pipelinesSelect.append(option);
+    }
+    pipelineSelectHandler(pipelinesSelect);
 }
 
-function pipelineSelectHandler(s) {
-  const p = pipelines[s.value];
-  if (!p) return;
+function pipelineSelectHandler (s)
+{
+    const p = pipelines[s.value];
+    if (!p) return;
 
-  if (p.asrc) {
-    $('#selectAudioSource').removeClass('d-none');
-  } else {
-    $('#selectAudioSource').addClass('d-none');
-  }
+    if (p.asrc)
+    {
+        $('#selectAudioSource').removeClass('d-none');
+    } else
+    {
+        $('#selectAudioSource').addClass('d-none');
+    }
 
-  if (p.acodec) {
-    $('#selectAudioCodec').removeClass('d-none');
-  } else {
-    $('#selectAudioCodec').addClass('d-none');
-  }
+    if (p.acodec)
+    {
+        $('#selectAudioCodec').removeClass('d-none');
+    } else
+    {
+        $('#selectAudioCodec').addClass('d-none');
+    }
 }
 
-$("#pipelines").change(function(ev) {
-  pipelineSelectHandler(ev.target);
+$("#pipelines").change(function (ev)
+{
+    pipelineSelectHandler(ev.target);
 });
 
 /* Bitrate setting updates */
-function updateBitrate(br) {
-  $('#bitrateSlider').slider('option', 'value', br.max_br);
-  showBitrate(br.max_br);
+function updateBitrate (br)
+{
+    $('#bitrateMaxSlider').slider('option', 'value', br.max_br);
+    $('#bitrateMinSlider').slider('option', 'value', br.min_br);
+    showBitrate(br);
 }
 
 
 /* WiFi manager */
-function wifiScan(button, deviceId) {
-  if (!ws) return;
+function wifiScan (button, deviceId)
+{
+    if (!ws) return;
 
-  // Disable the search button immediately
-  const wifiManager = $(button).parents('.wifi-settings');
-  wifiManager.find('.wifi-scan-button').attr('disabled', true);
+    // Disable the search button immediately
+    const wifiManager = $(button).parents('.wifi-settings');
+    wifiManager.find('.wifi-scan-button').attr('disabled', true);
 
-  // Send the request
-  ws.send(JSON.stringify({wifi: {scan: deviceId}}));
+    // Send the request
+    ws.send(JSON.stringify({ wifi: { scan: deviceId } }));
 
-  // Duration
-  const searchDuration = 10000;
+    // Duration
+    const searchDuration = 10000;
 
-  setTimeout(function() {
-    wifiManager.find('.wifi-scan-button').attr('disabled', false);
-    wifiManager.find('.scanning').addClass('d-none');
-  }, searchDuration);
+    setTimeout(function ()
+    {
+        wifiManager.find('.wifi-scan-button').attr('disabled', false);
+        wifiManager.find('.scanning').addClass('d-none');
+    }, searchDuration);
 
-  wifiManager.find('.connect-error').addClass('d-none');
-  wifiManager.find('.scanning').removeClass('d-none');
-}
-
-function wifiSendNewConnection() {
-  $('#wifiNewErrAuth').addClass('d-none');
-  $('#wifiNewErrGeneric').addClass('d-none');
-  $('#wifiNewConnecting').removeClass('d-none');
-
-  $('#wifiConnectButton').attr('disabled', true);
-
-  const device = $('#connection-device').val();
-  const ssid = $('#connection-ssid').val();
-  const password = $('#connection-password').val();
-
-  ws.send(JSON.stringify({
-    wifi: {
-      new: {
-        device,
-        ssid,
-        password
-      }
-    }
-  }));
-
-  return false;
-}
-
-function wifiConnect(e) {
-  const network = $(e).parents('tr.network').data('network');
-
-  if (network.active) return;
-
-  if (network.uuid) {
-    ws.send(JSON.stringify({wifi: {connect: network.uuid}}));
-
-    const wifiManager = $(e).parents('.wifi-settings');
     wifiManager.find('.connect-error').addClass('d-none');
-    wifiManager.find('.connecting').removeClass('d-none');
-  } else {
-    if (network.security === "") {
-      if (confirm(`Connect to the open network ${network.ssid}?`)) {
-        ws.send(JSON.stringify({
-          wifi: {
+    wifiManager.find('.scanning').removeClass('d-none');
+}
+
+function wifiSendNewConnection ()
+{
+    $('#wifiNewErrAuth').addClass('d-none');
+    $('#wifiNewErrGeneric').addClass('d-none');
+    $('#wifiNewConnecting').removeClass('d-none');
+
+    $('#wifiConnectButton').attr('disabled', true);
+
+    const device = $('#connection-device').val();
+    const ssid = $('#connection-ssid').val();
+    const password = $('#connection-password').val();
+
+    ws.send(JSON.stringify({
+        wifi: {
             new: {
-              ssid: network.ssid,
-              device: network.device
+                device,
+                ssid,
+                password
             }
-          }
-        }));
-      }
-    } else {
-      if (network.security.match('802.1X')) {
-        alert("This network uses 802.1X enterprise authentication, " +
-              "which belaUI doesn't support at the moment");
-      } else if (network.security.match('WEP')) {
-        alert("This network uses legacy WEP authentication, " +
-              "which belaUI doesn't support");
-      } else {
-        $('#connection-ssid').val(network.ssid);
-        $('#connection-device').val(network.device);
-        $('#connection-password').val('');
-        $('.wifi-new-status').addClass('d-none');
-        $('#wifiConnectButton').attr('disabled', false);
-        $('#wifiModal').modal({ show: true });
+        }
+    }));
 
-        setTimeout(() => {
-          $('#connection-password').focus();
-        }, 500);
-      }
+    return false;
+}
+
+function wifiConnect (e)
+{
+    const network = $(e).parents('tr.network').data('network');
+
+    if (network.active) return;
+
+    if (network.uuid)
+    {
+        ws.send(JSON.stringify({ wifi: { connect: network.uuid } }));
+
+        const wifiManager = $(e).parents('.wifi-settings');
+        wifiManager.find('.connect-error').addClass('d-none');
+        wifiManager.find('.connecting').removeClass('d-none');
+    } else
+    {
+        if (network.security === "")
+        {
+            if (confirm(`Connect to the open network ${network.ssid}?`))
+            {
+                ws.send(JSON.stringify({
+                    wifi: {
+                        new: {
+                            ssid: network.ssid,
+                            device: network.device
+                        }
+                    }
+                }));
+            }
+        } else
+        {
+            if (network.security.match('802.1X'))
+            {
+                alert("This network uses 802.1X enterprise authentication, " +
+                    "which belaUI doesn't support at the moment");
+            } else if (network.security.match('WEP'))
+            {
+                alert("This network uses legacy WEP authentication, " +
+                    "which belaUI doesn't support");
+            } else
+            {
+                $('#connection-ssid').val(network.ssid);
+                $('#connection-device').val(network.device);
+                $('#connection-password').val('');
+                $('.wifi-new-status').addClass('d-none');
+                $('#wifiConnectButton').attr('disabled', false);
+                $('#wifiModal').modal({ show: true });
+
+                setTimeout(() =>
+                {
+                    $('#connection-password').focus();
+                }, 500);
+            }
+        }
     }
-  }
 }
 
-function wifiDisconnect(e) {
-  const network = $(e).parents('tr').data('network');
+function wifiDisconnect (e)
+{
+    const network = $(e).parents('tr').data('network');
 
-  if (confirm(`Disconnect from ${network.ssid}?`)) {
-    ws.send(JSON.stringify({
-      wifi: {
-        disconnect: network.uuid
-      },
-    }));
-  }
+    if (confirm(`Disconnect from ${network.ssid}?`))
+    {
+        ws.send(JSON.stringify({
+            wifi: {
+                disconnect: network.uuid
+            },
+        }));
+    }
 }
 
-function wifiForget(e) {
-  const network = $(e).parents('tr').data('network');
+function wifiForget (e)
+{
+    const network = $(e).parents('tr').data('network');
 
-  if (confirm(`Forget network ${network.ssid}?`)) {
-    ws.send(JSON.stringify({
-      wifi: {
-        forget: network.uuid
-      },
-    }));
-  }
+    if (confirm(`Forget network ${network.ssid}?`))
+    {
+        ws.send(JSON.stringify({
+            wifi: {
+                forget: network.uuid
+            },
+        }));
+    }
 }
 
-function wifiFindCardId(deviceId) {
-  return `wifi-manager-${parseInt(deviceId)}`;
+function wifiFindCardId (deviceId)
+{
+    return `wifi-manager-${parseInt(deviceId)}`;
 }
 
-function wifiSignalSymbol(signal) {
-  if (signal < 0) signal = 0;
-  if (signal > 100) signal = 100;
-  const symbol = 9601 + Math.floor(signal / 12.51);
-  let cl = "text-success";
-  if (signal < 40) {
-    cl = "text-danger";
-  } else if (signal < 75) {
-    cl = "text-warning";
-  }
-  return `<span class="${cl}">&#${symbol}</span>`;
+function wifiSignalSymbol (signal)
+{
+    if (signal < 0) signal = 0;
+    if (signal > 100) signal = 100;
+    const symbol = 9601 + Math.floor(signal / 12.51);
+    let cl = "text-success";
+    if (signal < 40)
+    {
+        cl = "text-danger";
+    } else if (signal < 75)
+    {
+        cl = "text-warning";
+    }
+    return `<span class="${cl}">&#${symbol}</span>`;
 }
 
-function wifiListAvailableNetwork(device, deviceId, a) {
-  const savedUuid = device.saved[a.ssid];
-  if (savedUuid) {
-    delete device.saved[a.ssid];
-  }
+function wifiListAvailableNetwork (device, deviceId, a)
+{
+    const savedUuid = device.saved[a.ssid];
+    if (savedUuid)
+    {
+        delete device.saved[a.ssid];
+    }
 
-  const html = `
+    const html = `
     <tr class="network">
       <td class="signal px-0"></td>
       <td class="band px-0"></td>
@@ -715,35 +1012,40 @@ function wifiListAvailableNetwork(device, deviceId, a) {
       </td>
     </tr>`;
 
-  const network = $($.parseHTML(html));
-  network.find('.signal').html(wifiSignalSymbol(a.signal));// + '%');
-  network.find('.band').html((a.freq > 5000) ? '5&#13203;' : '2.4&#13203;');
-  const ssidEl = network.find('.ssid');
-  ssidEl.text(a.ssid);
+    const network = $($.parseHTML(html));
+    network.find('.signal').html(wifiSignalSymbol(a.signal));// + '%');
+    network.find('.band').html((a.freq > 5000) ? '5&#13203;' : '2.4&#13203;');
+    const ssidEl = network.find('.ssid');
+    ssidEl.text(a.ssid);
 
-  network.data('network', {active: a.active, uuid: savedUuid, ssid: a.ssid, device: deviceId, security: a.security});
+    network.data('network', { active: a.active, uuid: savedUuid, ssid: a.ssid, device: deviceId, security: a.security });
 
-  if (a.security != '') {
-    // show a cross mark for 802.1X or WEP networks (unsupported)
-    // or a lock symbol for PSK networks (supported)
-    network.find('.security').html(a.security.match(/802\.1X|WEP/) ? '&#10060;' : '&#128274;');
-  }
-  if (a.active) {
-    network.find('.disconnect').removeClass('d-none');
-    network.find('.connected').removeClass('d-none');
-  }
-  if (!a.active) {
-    network.find('.ssid').addClass('can-connect');
-  }
-  if (savedUuid) {
-    network.find('.forget').removeClass('d-none');
-  }
+    if (a.security != '')
+    {
+        // show a cross mark for 802.1X or WEP networks (unsupported)
+        // or a lock symbol for PSK networks (supported)
+        network.find('.security').html(a.security.match(/802\.1X|WEP/) ? '&#10060;' : '&#128274;');
+    }
+    if (a.active)
+    {
+        network.find('.disconnect').removeClass('d-none');
+        network.find('.connected').removeClass('d-none');
+    }
+    if (!a.active)
+    {
+        network.find('.ssid').addClass('can-connect');
+    }
+    if (savedUuid)
+    {
+        network.find('.forget').removeClass('d-none');
+    }
 
-  return network;
+    return network;
 }
 
-function wifiListSavedNetwork(ssid, uuid) {
-  const html = `
+function wifiListSavedNetwork (ssid, uuid)
+{
+    const html = `
     <tr class="network">
       <td class="ssid col-11"></td>
       <td class="col-1">
@@ -755,37 +1057,42 @@ function wifiListSavedNetwork(ssid, uuid) {
       </td>
     </tr>`;
 
-  const network = $($.parseHTML(html));
-  network.find('.ssid').text(ssid);
+    const network = $($.parseHTML(html));
+    network.find('.ssid').text(ssid);
 
-  network.data('network', {ssid, uuid});
+    network.data('network', { ssid, uuid });
 
-  return network;
+    return network;
 }
 
 let wifiIfs = {};
-function updateWifiState(msg) {
-  for (const i in wifiIfs) {
-    wifiIfs[i].removed = true;
-  }
-
-  for (let deviceId in msg) {
-    deviceId = parseInt(deviceId);
-
-    // Mark the interface as not removed
-    if (wifiIfs[deviceId]) {
-      delete wifiIfs[deviceId].removed;
+function updateWifiState (msg)
+{
+    for (const i in wifiIfs)
+    {
+        wifiIfs[i].removed = true;
     }
 
-    const cardId = wifiFindCardId(deviceId);
-    const device = msg[deviceId];
-    let deviceCard = $(`#${cardId}`);
+    for (let deviceId in msg)
+    {
+        deviceId = parseInt(deviceId);
 
-    if (deviceCard.length == 0) {
-      const html = `
+        // Mark the interface as not removed
+        if (wifiIfs[deviceId])
+        {
+            delete wifiIfs[deviceId].removed;
+        }
+
+        const cardId = wifiFindCardId(deviceId);
+        const device = msg[deviceId];
+        let deviceCard = $(`#${cardId}`);
+
+        if (deviceCard.length == 0)
+        {
+            const html = `
         <div id="${cardId}" class="wifi-settings card mb-2">
-          <div class="card-header bg-success text-center" type="button" data-toggle="collapse" data-target="#collapseWifi-${deviceId}">
-            <button class="btn btn-link text-white" type="button" data-toggle="collapse" data-target="#collapseWifi-${deviceId}" aria-expanded="false" aria-controls="collapseWifi-${deviceId}">
+          <div class="card-header bg-success text-center" type="button" data-bs-toggle="collapse" href="#collapseWifi-${deviceId}">
+            <button class="btn btn-link text-white" type="button" data-bs-toggle="collapse" href="#collapseWifi-${deviceId}" aria-expanded="false" aria-controls="collapseWifi-${deviceId}">
               Wifi: <strong class="device-name"></strong>
             </button>
           </div>
@@ -826,565 +1133,685 @@ function updateWifiState(msg) {
           </div>
         </div>`;
 
-      deviceCard = $($.parseHTML(html));
+            deviceCard = $($.parseHTML(html));
 
-      deviceCard.appendTo('#wifi');
+            deviceCard.appendTo('#wifi');
+        }
+
+        // Update the card's header
+        deviceCard.find('.device-name').text(device.ifname);
+
+        // Show the available networks
+        let networkList = [];
+
+        for (const a of msg[deviceId].available)
+        {
+            if (a.active)
+            {
+                networkList.push(wifiListAvailableNetwork(device, deviceId, a));
+            }
+        }
+
+        for (const a of msg[deviceId].available)
+        {
+            if (!a.active)
+            {
+                networkList.push(wifiListAvailableNetwork(device, deviceId, a));
+            }
+        }
+
+        deviceCard.find('.available-networks').html(networkList);
+
+        // Show the saved networks
+        networkList = [];
+        for (const ssid in msg[deviceId].saved)
+        {
+            const uuid = msg[deviceId].saved[ssid];
+            networkList.push(wifiListSavedNetwork(ssid, uuid));
+        }
+
+        if (networkList.length)
+        {
+            deviceCard.find('tbody.saved-networks').html(networkList);
+            deviceCard.find('table.saved-networks').removeClass('d-none');
+        } else
+        {
+            deviceCard.find('table.saved-networks').addClass('d-none');
+        }
     }
 
-    // Update the card's header
-    deviceCard.find('.device-name').text(device.ifname);
-
-    // Show the available networks
-    let networkList = [];
-
-    for (const a of msg[deviceId].available) {
-      if (a.active) {
-        networkList.push(wifiListAvailableNetwork(device, deviceId, a));
-      }
+    for (const i in wifiIfs)
+    {
+        if (wifiIfs[i].removed)
+        {
+            const cardId = wifiFindCardId(i);
+            $(`#${cardId}`).remove();
+        }
     }
 
-    for (const a of msg[deviceId].available) {
-      if (!a.active) {
-        networkList.push(wifiListAvailableNetwork(device, deviceId, a));
-      }
-    }
-
-    deviceCard.find('.available-networks').html(networkList);
-
-    // Show the saved networks
-    networkList = [];
-    for (const ssid in msg[deviceId].saved) {
-      const uuid = msg[deviceId].saved[ssid];
-      networkList.push(wifiListSavedNetwork(ssid, uuid));
-    }
-
-    if (networkList.length) {
-      deviceCard.find('tbody.saved-networks').html(networkList);
-      deviceCard.find('table.saved-networks').removeClass('d-none');
-    } else {
-      deviceCard.find('table.saved-networks').addClass('d-none');
-    }
-  }
-
-  for (const i in wifiIfs) {
-    if (wifiIfs[i].removed) {
-      const cardId = wifiFindCardId(i);
-      $(`#${cardId}`).remove();
-    }
-  }
-
-  wifiIfs = msg;
+    wifiIfs = msg;
 }
 
-function handleWifiResult(msg) {
-  if (msg.connect !== undefined) {
-    const wifiManagerId = `#${wifiFindCardId(msg.device)}`;
-    $(wifiManagerId).find('.connecting').addClass('d-none');
-    if (msg.connect === false) {
-      $(wifiManagerId).find('.connect-error').removeClass('d-none');
-    }
-  } else if (msg.new) {
-    if (msg.new.error) {
-      $('#wifiNewConnecting').addClass('d-none');
+function handleWifiResult (msg)
+{
+    if (msg.connect !== undefined)
+    {
+        const wifiManagerId = `#${wifiFindCardId(msg.device)}`;
+        $(wifiManagerId).find('.connecting').addClass('d-none');
+        if (msg.connect === false)
+        {
+            $(wifiManagerId).find('.connect-error').removeClass('d-none');
+        }
+    } else if (msg.new)
+    {
+        if (msg.new.error)
+        {
+            $('#wifiNewConnecting').addClass('d-none');
 
-      switch (msg.new.error) {
-        case 'auth':
-          $('#wifiNewErrAuth').removeClass('d-none');
-          break;
-        case 'generic':
-          $('#wifiNewErrGeneric').removeClass('d-none');
-          break;
-      }
+            switch (msg.new.error)
+            {
+                case 'auth':
+                    $('#wifiNewErrAuth').removeClass('d-none');
+                    break;
+                case 'generic':
+                    $('#wifiNewErrGeneric').removeClass('d-none');
+                    break;
+            }
 
-      $('#wifiConnectButton').attr('disabled', false);
+            $('#wifiConnectButton').attr('disabled', false);
+        }
+        if (msg.new.success)
+        {
+            $('#wifiModal').modal('hide');
+        }
     }
-    if (msg.new.success) {
-      $('#wifiModal').modal('hide');
-    }
-  }
 }
 
 
 /* Error messages */
-function showError(message) {
-  $("#errorMsg>span").text(message);
-  $("#errorMsg").removeClass('d-none');
+function showError (message)
+{
+    $("#errorMsg>span").text(message);
+    $("#errorMsg").removeClass('d-none');
 }
 
-function hideError() {
-  $("#errorMsg").addClass('d-none');
+function hideError ()
+{
+    $("#errorMsg").addClass('d-none');
 }
 
 
 /* Notifications */
-function notificationId(name) {
-  return `notification-${name}`;
+function notificationId (name)
+{
+    return `notification-${name}`;
 }
 
-function showNotification(n) {
-  if (!n.name || !n.type || !n.msg) return;
-  const alertId = notificationId(n.name);
+function showNotification (n)
+{
+    if (!n.name || !n.type || !n.msg) return;
+    const alertId = notificationId(n.name);
 
-  let alert = $(`#${alertId}`);
-  if (alert.length == 0) {
-    const html = `
+    let alert = $(`#${alertId}`);
+    if (alert.length == 0)
+    {
+        const html = `
       <div class="alert mb-2">
         <span class="msg"></span>
         <button type="button" class="close d-none" data-dismiss="alert" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>`;
-    alert = $($.parseHTML(html));
+        alert = $($.parseHTML(html));
 
-    alert.attr('id', alertId);
-    if (n.is_dismissable) {
-      alert.addClass('alert-dismissible');
-      alert.find('button').removeClass('d-none');
+        alert.attr('id', alertId);
+        if (n.is_dismissable)
+        {
+            alert.addClass('alert-dismissible');
+            alert.find('button').removeClass('d-none');
+        }
+
+        alert.appendTo('#notifications');
+    } else
+    {
+        alert.removeClass(['alert-secondary', 'alert-danger', 'alert-warning', 'alert-success']);
+        const t = alert.data('timerHide');
+        if (t)
+        {
+            clearTimeout(t);
+        }
     }
 
-    alert.appendTo('#notifications');
-  } else {
-    alert.removeClass(['alert-secondary', 'alert-danger', 'alert-warning', 'alert-success']);
-    const t = alert.data('timerHide');
-    if (t) {
-      clearTimeout(t);
+    let colorClass = 'alert-secondary';
+    switch (n.type)
+    {
+        case 'error':
+            alert.addClass(`alert-danger`);
+            break;
+        case 'warning':
+        case 'success':
+            alert.addClass(`alert-${n.type}`);
+            break;
     }
-  }
+    alert.addClass(colorClass);
 
-  let colorClass = 'alert-secondary'
-  switch(n.type) {
-    case 'error':
-      alert.addClass(`alert-danger`);
-      break;
-    case 'warning':
-    case 'success':
-      alert.addClass(`alert-${n.type}`);
-      break;
-  }
-  alert.addClass(colorClass);
+    alert.find('span.msg').text(n.msg);
 
-  alert.find('span.msg').text(n.msg);
+    if (n.duration)
+    {
+        alert.data('timerHide', setTimeout(function ()
+        {
+            alert.slideUp(300, function ()
+            {
+                $(this).remove();
+            });
+        }, n.duration * 1000));
+    }
 
-  if (n.duration) {
-    alert.data('timerHide', setTimeout(function() {
-      alert.slideUp(300, function() {
-        $(this).remove();
-      });
-    }, n.duration * 1000));
-  }
-
-  $('html, body').animate({
-    scrollTop: 0,
-    scrollLeft: 0
-  }, 200);
+    $('html, body').animate({
+        scrollTop: 0,
+        scrollLeft: 0
+    }, 200);
 }
 
-function removeNotification(name) {
-  const alertId = notificationId(name);
-  $(`#${alertId}`).remove();
+function removeNotification (name)
+{
+    const alertId = notificationId(name);
+    $(`#${alertId}`).remove();
 }
 
-function handleNotification(msg) {
-  if (msg.show) {
-    for (const n of msg.show) {
-      showNotification(n);
+function handleNotification (msg)
+{
+    if (msg.show)
+    {
+        for (const n of msg.show)
+        {
+            showNotification(n);
+        }
     }
-  }
-  if (msg.remove) {
-    for (const n of msg.remove) {
-      removeNotification(n);
+    if (msg.remove)
+    {
+        for (const n of msg.remove)
+        {
+            removeNotification(n);
+        }
     }
-  }
 }
 
 
 /* Log download */
-function downloadLog(msg) {
-  const blob = new Blob([msg.contents], {type: 'text/plain'})
+function downloadLog (msg)
+{
+    const blob = new Blob([msg.contents], { type: 'text/plain' });
 
-  const a = window.document.createElement('a');
-  a.href = window.URL.createObjectURL(blob);
-  a.download = msg.name;
-  a.click();
+    const a = window.document.createElement('a');
+    a.href = window.URL.createObjectURL(blob);
+    a.download = msg.name;
+    a.click();
 
-  window.URL.revokeObjectURL(blob);
+    window.URL.revokeObjectURL(blob);
 }
 
 
 /* Handle server-to-client messages */
-function handleMessage(msg) {
-  console.log(msg);
-  for (const type in msg) {
-    switch(type) {
-      case 'auth':
-        handleAuthResult(msg[type]);
-        break;
-      case 'revisions':
-        setRevisions(msg[type]);
-        break;
-      case 'netif':
-        updateNetif(msg[type]);
-        break;
-      case 'sensors':
-        updateSensors(msg[type]);
-        break;
-      case 'status':
-        updateStatus(msg[type]);
-        break;
-      case 'config':
-        loadConfig(msg[type]);
-        break;
-      case 'pipelines':
-        updatePipelines(msg[type]);
-        break;
-      case 'bitrate':
-        updateBitrate(msg[type]);
-        break;
-      case 'wifi':
-        handleWifiResult(msg[type]);
-        break;
-      case 'error':
-        showError(msg[type].msg);
-        break;
-      case 'notification':
-        handleNotification(msg[type]);
-        break;
-      case 'log':
-        downloadLog(msg[type]);
-        break;
-      case 'acodecs':
-        updateAudioCodecs(msg[type]);
-        break;
+function handleMessage (msg)
+{
+    for (const type in msg)
+    {
+        switch (type)
+        {
+            case 'auth':
+                handleAuthResult(msg[type]);
+                break;
+            case 'revisions':
+                setRevisions(msg[type]);
+                break;
+            case 'netif':
+                updateNetif(msg[type]);
+                break;
+            case 'sensors':
+                updateSensors(msg[type]);
+                break;
+            case 'status':
+                updateStatus(msg[type]);
+                break;
+            case 'config':
+                loadConfig(msg[type]);
+                break;
+            case 'pipelines':
+                updatePipelines(msg[type]);
+                break;
+            case 'bitrate':
+                updateBitrate(msg[type]);
+                break;
+            case 'wifi':
+                handleWifiResult(msg[type]);
+                break;
+            case 'error':
+                showError(msg[type].msg);
+                break;
+            case 'notification':
+                handleNotification(msg[type]);
+                break;
+            case 'log':
+                downloadLog(msg[type]);
+                break;
+            case 'acodecs':
+                updateAudioCodecs(msg[type]);
+                break;
+        }
     }
-  }
 }
 
 
 /* Start / stop */
-function getConfig() {
-  const maxBr = $("#bitrateSlider").slider("value");
+function getConfig ()
+{
+    const maxBr = $("#bitrateMaxSlider").slider("value");
+    const minBr = $("#bitrateMinSlider").slider("value");
 
-  let config = {};
-  config.pipeline = document.getElementById("pipelines").value;
-  if (pipelines[config.pipeline].asrc) {
-    config.asrc = document.getElementById("audioSource").value;
-  }
-  if (pipelines[config.pipeline].acodec) {
-    config.acodec = document.getElementById("audioCodec").value;
-  }
-  config.delay = $("#delaySlider").slider("value");
-  config.max_br = maxBr;
-  config.srtla_addr = document.getElementById("srtlaAddr").value;
-  config.srtla_port = document.getElementById("srtlaPort").value;
-  config.srt_streamid = document.getElementById("srtStreamid").value;
-  config.srt_latency = $("#srtLatencySlider").slider("value");
-  config.bitrate_overlay = $("#bitrateOverlay").prop('checked');
+    let config = {};
+    config.pipeline = document.getElementById("pipelines").value;
+    if (pipelines[config.pipeline].asrc)
+    {
+        config.asrc = document.getElementById("audioSource").value;
+    }
+    if (pipelines[config.pipeline].acodec)
+    {
+        config.acodec = document.getElementById("audioCodec").value;
+    }
+    config.delay = $("#delaySlider").slider("value");
+    config.max_br = maxBr;
+    config.min_br = minBr;
+    config.srtla_addr = document.getElementById("srtlaAddr").value;
+    config.srtla_port = document.getElementById("srtlaPort").value;
+    config.srt_streamid = document.getElementById("srtStreamid").value;
+    config.srt_latency = $("#srtLatencySlider").slider("value");
+    config.bitrate_overlay = $("#bitrateOverlay").prop('checked');
 
-  return config;
+    return config;
 }
 
-async function start() {
-  hideError();
+async function start ()
+{
+    hideError();
 
-  ws.send(JSON.stringify({start: getConfig()}));
+    ws.send(JSON.stringify({ start: getConfig() }));
 }
 
-async function stop() {
-  ws.send(JSON.stringify({stop: 0}));
+async function stop ()
+{
+    ws.send(JSON.stringify({ stop: 0 }));
 }
 
-async function send_command(cmd) {
-  ws.send(JSON.stringify({command: cmd}));
+async function send_command (cmd)
+{
+    ws.send(JSON.stringify({ command: cmd }));
 }
 
 
 /* UI */
-function updateButton({ add, remove, text, enabled }) {
-  const button = document.getElementById("startStop");
+function updateButton ({ add, remove, text, enabled })
+{
+    const button = document.getElementById("startStop");
 
-  button.classList.add(add);
-  button.classList.remove(remove);
+    button.classList.add(add);
+    button.classList.remove(remove);
 
-  button.innerHTML = text;
-  if (enabled) {
-    button.removeAttribute("disabled");
-  } else {
-    button.setAttribute("disabled", true);
-  }
+    button.innerHTML = text;
+    if (enabled)
+    {
+        button.removeAttribute("disabled");
+    } else
+    {
+        button.setAttribute("disabled", true);
+    }
 }
 
-function updateButtonAndSettingsShow({ add, remove, text, enabled, settingsShow }) {
-  const settingsDivs = document.getElementById("settings");
+function updateButtonAndSettingsShow ({ add, remove, text, enabled, settingsShow })
+{
+    const settingsDivs = document.getElementById("settings");
 
-  if (settingsShow) {
-    settingsDivs.classList.remove("d-none");
-  } else {
-    settingsDivs.classList.add("d-none");
-  }
+    if (settingsShow)
+    {
+        settingsDivs.classList.remove("d-none");
+    } else
+    {
+        settingsDivs.classList.add("d-none");
+    }
 
-  updateButton({add, remove, text, enabled });
+    updateButton({ add, remove, text, enabled });
 }
 
 
-function setBitrate(max) {
-  if (isStreaming) {
-    ws.send(JSON.stringify({bitrate: {max_br: max}}));
-  }
+function setBitrate (new_br)
+{
+    if (isStreaming)
+    {
+        ws.send(JSON.stringify({ bitrate: new_br }));
+    }
 }
 
-function showBitrate(value) {
-  document.getElementById(
-    "bitrateValues"
-  ).value = `Max bitrate: ${value} Kbps`;
+function showBitrate (value)
+{
+    document.getElementById(
+        "bitrateMaxValues"
+    ).value = `Max bitrate: ${value.max_br} Kbps`;
+
+    document.getElementById(
+        "bitrateMinValues"
+    ).value = `Min bitrate: ${value.min_br} Kbps`;
 }
 
-function initBitrateSlider(bitrateDefault) {
-  $("#bitrateSlider").slider({
-    range: false,
-    min: 500,
-    max: 12000,
-    step: 250,
-    value: bitrateDefault,
-    slide: (event, ui) => {
-      showBitrate(ui.value);
-      setBitrate(ui.value);
-    },
-  });
-  showBitrate(bitrateDefault);
+function initBitrateSlider (bitrateDefault)
+{
+    let max_brVal = bitrateDefault.max_br;
+    let min_brVal = bitrateDefault.min_br;
+    $("#bitrateMaxSlider").slider({
+        range: false,
+        min: 500,
+        max: 12000,
+        step: 250,
+        value: bitrateDefault.max_br,
+        slide: (event, ui) =>
+        {
+            max_brVal = ui.value;
+            showBitrate({ min_br: min_brVal, max_br: ui.value });
+            setBitrate({ min_br: min_brVal, max_br: ui.value });
+        },
+    });
+    $("#bitrateMinSlider").slider({
+        range: false,
+        min: 300,
+        max: 12000,
+        step: 250,
+        value: bitrateDefault.min_br,
+        slide: (event, ui) =>
+        {
+            min_brVal = ui.value;
+            showBitrate({ min_br: ui.value, max_br: max_brVal });
+            setBitrate({ min_br: ui.value, max_br: max_brVal });
+        },
+    });
+    showBitrate(bitrateDefault);
 }
 
-function showDelay(value) {
-  document.getElementById("delayValue").value = `Audio delay: ${value} ms`;
+function showDelay (value)
+{
+    document.getElementById("delayValue").value = `Audio delay: ${value} ms`;
 }
 
-function initDelaySlider(defaultDelay) {
-  $("#delaySlider").slider({
-    min: -2000,
-    max: 2000,
-    step: 20,
-    value: defaultDelay,
-    slide: (event, ui) => {
-      showDelay(ui.value);
-    },
-  });
-  showDelay(defaultDelay);
+function initDelaySlider (defaultDelay)
+{
+    $("#delaySlider").slider({
+        min: -2000,
+        max: 2000,
+        step: 20,
+        value: defaultDelay,
+        slide: (event, ui) =>
+        {
+            showDelay(ui.value);
+        },
+    });
+    showDelay(defaultDelay);
 }
 
-function showSrtLatency(value) {
-  document.getElementById("srtLatencyValue").value = `SRT latency: ${value} ms`;
+function showSrtLatency (value)
+{
+    document.getElementById("srtLatencyValue").value = `SRT latency: ${value} ms`;
 
-  if (value < 1500) {
-    $('#latencyWarning').removeClass('d-none');
-  } else {
-    $('#latencyWarning').addClass('d-none');
-  }
+    if (value < 1500)
+    {
+        $('#latencyWarning').removeClass('d-none');
+    } else
+    {
+        $('#latencyWarning').addClass('d-none');
+    }
 }
 
-function initSrtLatencySlider(defaultLatency) {
-  $("#srtLatencySlider").slider({
-    min: 100,
-    max: 4000,
-    step: 100,
-    value: defaultLatency,
-    slide: (event, ui) => {
-      showSrtLatency(ui.value);
-    },
-  });
-  showSrtLatency(defaultLatency);
+function initSrtLatencySlider (defaultLatency)
+{
+    $("#srtLatencySlider").slider({
+        min: 0,
+        max: 4000,
+        step: 100,
+        value: defaultLatency,
+        slide: (event, ui) =>
+        {
+            showSrtLatency(ui.value);
+        },
+    });
+    showSrtLatency(defaultLatency);
 }
 
 
 /* UI event handlers */
-document.getElementById("startStop").addEventListener("click", () => {
-  if (!isStreaming) {
-    updateButton({text: "Starting..."});
-    start();
-  } else {
-    updateButton({text: "Stopping..."});
-    stop();
-  }
+document.getElementById("startStop").addEventListener("click", () =>
+{
+    if (!isStreaming)
+    {
+        updateButton({ text: "Starting..." });
+        start();
+    } else
+    {
+        updateButton({ text: "Stopping..." });
+        stop();
+    }
 });
 
-function updateNetact(isActive) {
-  if (isActive) {
-    $('.btn-netact').attr('disabled', false);
-    checkRemoteKey();
-    $('.set-password').trigger('input');
-    showSoftwareUpdates(false);
-  } else {
-    $('.btn-netact').attr('disabled', true);
-  }
+function updateNetact (isActive)
+{
+    if (isActive)
+    {
+        $('.btn-netact').attr('disabled', false);
+        checkRemoteKey();
+        $('.set-password').trigger('input');
+        showSoftwareUpdates(false);
+    } else
+    {
+        $('.btn-netact').attr('disabled', true);
+    }
 }
 
 
-function showLoginForm() {
-  $('#main').addClass('d-none');
-  $('#initialPasswordForm').addClass('d-none');
-  $('#login').removeClass('d-none');
-  $('#themeSelector').removeClass('d-none');
+function showLoginForm ()
+{
+    $('#main').addClass('d-none');
+    $('#initialPasswordForm').addClass('d-none');
+    $('#login').removeClass('d-none');
+    $('#themeSelector').removeClass('d-none');
 }
 
-function sendAuthMsg(password, isPersistent) {
-  let auth_req = {auth: {password, persistent_token: isPersistent}};
-  ws.send(JSON.stringify(auth_req));
+function sendAuthMsg (password, isPersistent)
+{
+    let auth_req = { auth: { password, persistent_token: isPersistent } };
+    ws.send(JSON.stringify(auth_req));
 }
 
-$('#login>form').submit(function() {
-  const password = $('#password').val();
-  const rememberMe = $('#login .rememberMe').prop('checked');
-  sendAuthMsg(password, rememberMe);
+$('#login>form').submit(function ()
+{
+    const password = $('#password').val();
+    const rememberMe = $('#login .rememberMe').prop('checked');
+    sendAuthMsg(password, rememberMe);
 
-  $('#password').val('');
+    $('#password').val('');
 
-  return false;
+    return false;
 });
 
 let isShowingInitialPasswordForm = false;
-function showInitialPasswordForm() {
-  $('#main').addClass('d-none');
-  $('#login').addClass('d-none');
-  $('#initialPasswordForm').removeClass('d-none');
-  $('#themeSelector').removeClass('d-none');
-  isShowingInitialPasswordForm = true;
+function showInitialPasswordForm ()
+{
+    $('#main').addClass('d-none');
+    $('#login').addClass('d-none');
+    $('#initialPasswordForm').removeClass('d-none');
+    $('#themeSelector').removeClass('d-none');
+    isShowingInitialPasswordForm = true;
 }
 
-function checkPassword() {
-  const form = $(this).parents('form');
+function checkPassword ()
+{
+    const form = $(this).parents('form');
 
-  const p = $(this).val();
-  let isValid = false;
+    const p = $(this).val();
+    let isValid = false;
 
-  if (p.length < 8) {
-    $(form).find('.hint').text('Minimum length: 8 characters');
-  } else {
-    $(form).find('.hint').text('');
-    isValid = true;
-  }
+    if (p.length < 8)
+    {
+        $(form).find('.hint').text('Minimum length: 8 characters');
+    } else
+    {
+        $(form).find('.hint').text('');
+        isValid = true;
+    }
 
-  $(form).find('button[type=submit]').prop('disabled', !isValid);
+    $(form).find('button[type=submit]').prop('disabled', !isValid);
 }
 $('.set-password').on('input', checkPassword);
 
-function sendPasswordFromInput(form) {
-  const passwordInput = $(form).find('input.set-password');
-  const password = passwordInput.val();
+function sendPasswordFromInput (form)
+{
+    const passwordInput = $(form).find('input.set-password');
+    const password = passwordInput.val();
 
-  passwordInput.val('');
-  $(form).find('button[type=submit]').prop('disabled', true);
+    passwordInput.val('');
+    $(form).find('button[type=submit]').prop('disabled', true);
 
-  ws.send(JSON.stringify({config: {password}}));
+    ws.send(JSON.stringify({ config: { password } }));
 
-  return password;
+    return password;
 }
 
-$('#initialPasswordForm form').submit(function() {
-  const password = sendPasswordFromInput(this);
-  const remember = $(this).find('.rememberMe').prop('checked');
-  sendAuthMsg(password, remember);
+$('#initialPasswordForm form').submit(function ()
+{
+    const password = sendPasswordFromInput(this);
+    const remember = $(this).find('.rememberMe').prop('checked');
+    sendAuthMsg(password, remember);
 
-  return false;
+    return false;
 });
 
-$('form#updatePasswordForm').submit(function() {
-  sendPasswordFromInput(this);
+$('form#updatePasswordForm').submit(function ()
+{
+    sendPasswordFromInput(this);
 
-  return false;
+    return false;
 });
 
-function checkRemoteKey() {
-  const remote_key = $('#remoteDeviceKey').val();
-  const disabled = (remote_key == config.remote_key);
-  $('#remoteKeyForm button[type=submit]').prop('disabled', disabled);
+function checkRemoteKey ()
+{
+    const remote_key = $('#remoteDeviceKey').val();
+    const disabled = (remote_key == config.remote_key);
+    $('#remoteKeyForm button[type=submit]').prop('disabled', disabled);
 }
 $('#remoteDeviceKey').on('input', checkRemoteKey);
 
-$('#remoteKeyForm').submit(function() {
-  const remote_key = $('#remoteDeviceKey').val();
-  ws.send(JSON.stringify({config: {remote_key}}));
-  return false;
+$('#remoteKeyForm').submit(function ()
+{
+    const remote_key = $('#remoteDeviceKey').val();
+    ws.send(JSON.stringify({ config: { remote_key } }));
+    return false;
 });
 
-$('#logout').click(function() {
-  localStorage.removeItem('authToken');
-  ws.send(JSON.stringify({logout: true}));
-  showLoginForm();
+$('#logout').click(function ()
+{
+    localStorage.removeItem('authToken');
+    ws.send(JSON.stringify({ logout: true }));
+    showLoginForm();
 });
 
-$('.command-btn').click(function() {
-  const confirmationMsg = $(this).attr('data-confirmation');
-  if (!confirmationMsg || confirm(confirmationMsg)) {
-    // convert to snake case
-    const cmd = this.id.split(/(?=[A-Z])/).join('_').toLowerCase();
-    send_command(cmd);
-  }
+$('.command-btn').click(function ()
+{
+    const confirmationMsg = $(this).attr('data-confirmation');
+    if (!confirmationMsg || confirm(confirmationMsg))
+    {
+        // convert to snake case
+        const cmd = this.id.split(/(?=[A-Z])/).join('_').toLowerCase();
+        send_command(cmd);
+    }
 });
 
-$('button.showHidePassword').click(function() {
-  const inputField = $(this).parents('.input-group').find('input');
-  if(inputField.attr('type') == 'password') {
-    inputField.attr('type', 'text');
-    $(this).text('Hide');
-  } else {
-    inputField.attr('type', 'password');
-    $(this).text('Show');
-  }
+$('button.showHidePassword').click(function ()
+{
+    const inputField = $(this).parents('.input-group').find('input');
+    if (inputField.attr('type') == 'password')
+    {
+        inputField.attr('type', 'text');
+        $(this).text('Hide');
+    } else
+    {
+        inputField.attr('type', 'password');
+        $(this).text('Show');
+    }
 });
 
-function showHideRelayHint(addr) {
-  const isCloudRelay = addr.match(/belabox.net$/);
-  if (isCloudRelay) {
-    $('#cloudRelay').addClass('d-none');
-  } else {
-    $('#cloudRelay').removeClass('d-none');
-  }
+function showHideRelayHint (addr)
+{
+    const isCloudRelay = addr.match(/belabox.net$/);
+    if (isCloudRelay)
+    {
+        $('#cloudRelay').addClass('d-none');
+    } else
+    {
+        $('#cloudRelay').removeClass('d-none');
+    }
 }
 
-$('input#srtlaAddr').change(function() {
-  showHideRelayHint($(this).val());
+$('input#srtlaAddr').change(function ()
+{
+    showHideRelayHint($(this).val());
 });
 
 /* Input fields automatically copied to clipboard when clicked */
-function copyInputValToClipboard(obj) {
-  if (!document.queryCommandSupported || !document.queryCommandSupported("copy")) {
-    return false;
-  }
+function copyInputValToClipboard (obj)
+{
+    if (!document.queryCommandSupported || !document.queryCommandSupported("copy"))
+    {
+        return false;
+    }
 
-  let input = $(obj);
-  let valField = input;
+    let input = $(obj);
+    let valField = input;
 
-  valField = $('<input>');
-  valField.css('position', 'fixed');
-  valField.css('top', '100000px');
-  valField.val(input.val());
-  $('body').append(valField);
+    valField = $('<input>');
+    valField.css('position', 'fixed');
+    valField.css('top', '100000px');
+    valField.val(input.val());
+    $('body').append(valField);
 
-  let success = false;
-  try {
-    valField.select();
-    document.execCommand("copy");
-    success = true;
-  } catch (err) {
-    console.log("Copying failed: " + err.message);
-  }
+    let success = false;
+    try
+    {
+        valField.select();
+        document.execCommand("copy");
+        success = true;
+    } catch (err)
+    {
+        console.log("Copying failed: " + err.message);
+    }
 
-  valField.remove();
+    valField.remove();
 
-  return success;
+    return success;
 }
 
-$('input.click-copy').tooltip({title: 'Copied', trigger: 'manual'});
-$('input.click-copy').click(function(ev) {
-  const target = ev.target;
-  let input = $(ev.target);
+$('input.click-copy').tooltip({ title: 'Copied', trigger: 'manual' });
+$('input.click-copy').click(function (ev)
+{
+    const target = ev.target;
+    let input = $(ev.target);
 
-  if (copyInputValToClipboard(target)) {
-    input.tooltip('show');
-    if (target.copiedTooltipTimer) {
-      clearTimeout(target.copiedTooltipTimer);
+    if (copyInputValToClipboard(target))
+    {
+        input.tooltip('show');
+        if (target.copiedTooltipTimer)
+        {
+            clearTimeout(target.copiedTooltipTimer);
+        }
+        target.copiedTooltipTimer = setTimeout(function ()
+        {
+            input.tooltip('hide');
+            delete target.copiedTooltipTimer;
+        }, 3000);
     }
-    target.copiedTooltipTimer = setTimeout(function() {
-      input.tooltip('hide');
-      delete target.copiedTooltipTimer;
-    }, 3000);
-  }
 });

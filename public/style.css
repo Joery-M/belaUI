@@ -58,6 +58,11 @@ td.security {
   }
 }
 
+
+input[type="checkbox"]#autoStart {
+    display: none;
+}
+
 /* Dark mode theme */
 
 body.dark {

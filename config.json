@@ -1,1 +1,14 @@
-{"password":"changeme"}
+{
+	"password_hash": "$2b$10$tkQPa95Cl2ttoCZMqYUag.2ht2llfjb/uOIQJxWJoiIJy98UMx.OO",
+	"max_br": 6000,
+	"min_br": 1550,
+	"asrc": "No audio",
+	"acodec": "opus",
+	"delay": 0,
+	"pipeline": "045f623b31811a1213a935959258a152ad9eccf9",
+	"srt_latency": 0,
+	"srt_streamid": "live/stream/belabox",
+	"srtla_addr": "100.85.104.128",
+	"srtla_port": 8282,
+	"bitrate_overlay": false
+}
